@@ -1,12 +1,22 @@
 import { Api } from "../../core/utils/abstract.ts";
 import { RouteError } from "../../core/utils/route-error.ts";
+import { v } from "../../core/utils/validate.ts";
+import { AuthMiddleware } from "../auth/middleware/auth.ts";
 import { LmsQuery } from "./query.ts";
 import { lmsTables } from "./tables.ts";
+v;
 export class LmsApi extends Api {
   query = new LmsQuery(this.db);
+  auth = new AuthMiddleware(this.core);
   handlers = {
     postCourse: (req, res) => {
-      const { slug, title, description, lessons, hours } = req.body;
+      const { slug, title, description, lessons, hours } = {
+        slug: v.string(req.body.slug),
+        title: v.string(req.body.title),
+        description: v.string(req.body.title),
+        lessons: v.number(req.body.lessons),
+        hours: v.number(req.body.hours),
+      };
       const writeResult = this.query.insertCourse({
         slug,
         title,
@@ -33,7 +43,16 @@ export class LmsApi extends Api {
         description,
         order,
         free,
-      } = req.body;
+      } = {
+        courseSlug: v.string(req.body.courseSlug),
+        slug: v.string(req.body.slug),
+        title: v.string(req.body.title),
+        seconds: v.number(req.body.seconds),
+        video: v.string(req.body.video),
+        description: v.string(req.body.description),
+        order: v.number(req.body.order),
+        free: v.number(req.body.free),
+      };
       const writeResult = this.query.insertLesson({
         courseSlug,
         slug,
@@ -67,13 +86,15 @@ export class LmsApi extends Api {
       if (!course) {
         throw new RouteError(404, "Curso não encontrado");
       }
-      const userId = 1;
       let completed: {
         lesson_id: number;
         completed: string;
       }[] = [];
-      if (userId) {
-        completed = this.query.selectLessonsCompleted(userId, course.id);
+      if (req.session) {
+        completed = this.query.selectLessonsCompleted(
+          req.session.user_id,
+          course.id,
+        );
       }
       res.status(200).json({ course, lessons, completed });
     },
@@ -94,7 +115,7 @@ export class LmsApi extends Api {
       if (userId) {
         const lessonCompleted = this.query.selectLessonCompleted(
           userId,
-          lesson.id
+          lesson.id,
         );
         if (lessonCompleted) completed = lessonCompleted.completed;
       }
@@ -104,12 +125,15 @@ export class LmsApi extends Api {
     completeLesson: (req, res) => {
       try {
         const userId = 1;
-        const { courseId, lessonId } = req.body;
+        const { courseId, lessonId } = {
+          courseId: v.number(req.body.courseId),
+          lessonId: v.number(req.body.lessonId),
+        };
 
         const writeResult = this.query.insertLessonCompleted(
           userId,
           courseId,
-          lessonId
+          lessonId,
         );
 
         if (writeResult.changes === 0) {
@@ -143,7 +167,7 @@ export class LmsApi extends Api {
     },
     reseteCourse: (req, res) => {
       const userId = 1;
-      const { courseId } = req.body;
+      const { courseId } = { courseId: v.number(req.body.courseId) };
 
       const writeResult = this.query.deleteLessonsCompleted(userId, courseId);
 
@@ -180,12 +204,14 @@ export class LmsApi extends Api {
   routes(): void {
     this.router.post("/lms/course", this.handlers.postCourse);
     this.router.get("/lms/courses", this.handlers.getCourses);
-    this.router.get("/lms/course/:slug", this.handlers.getCourse);
+    this.router.get("/lms/course/:slug", this.handlers.getCourse, [
+      this.auth.optional,
+    ]);
     this.router.delete("/lms/course/reset", this.handlers.reseteCourse);
     this.router.post("/lms/lesson", this.handlers.postLesson);
     this.router.get(
       "/lms/lesson/:courseSlug/:lessonSlug",
-      this.handlers.getLesson
+      this.handlers.getLesson,
     );
     this.router.post("/lms/lesson/complete", this.handlers.completeLesson);
     this.router.get("/lms/certificates", this.handlers.getCertificates);

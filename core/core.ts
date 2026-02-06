@@ -47,19 +47,19 @@ export class Core {
     } catch (error) {
       if (error instanceof RouteError) {
         console.error(
-          `${error.status} ${error.message} | method: ${request.method} url: ${request.url}`
+          `${error.status} ${error.message} | method: ${request.method} url: ${request.url}`,
         );
         response.statusCode = error.status;
         response.setHeader("content-type", "application/problem+json");
         response.end(
-          JSON.stringify({ status: response.statusCode, title: error.message })
+          JSON.stringify({ status: response.statusCode, title: error.message }),
         );
       } else {
         console.error(error);
         response.statusCode = 500;
         response.setHeader("content-type", "application/problem+json");
         response.end(
-          JSON.stringify({ status: response.statusCode, title: "error" })
+          JSON.stringify({ status: response.statusCode, title: "error" }),
         );
       }
     }
@@ -68,6 +68,11 @@ export class Core {
   init() {
     this.server.listen(3000, () => {
       console.log(`Server: http://localhost:3000`);
+    });
+
+    this.server.on("clientError", (error, socket) => {
+      console.error(error);
+      socket.destroy();
     });
   }
 }

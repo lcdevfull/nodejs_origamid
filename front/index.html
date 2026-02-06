@@ -54,27 +54,62 @@
       button:hover {
          background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
       }
+
+      #logout {
+         max-width: 200px;
+         margin: 0 auto;
+      }
    </style>
 </head>
 
 <body>
    <form id="login">
+      <h2>Login</h2>
       <label for="email">Email</label>
       <input type="email" name="email" id="email" value="maria@email.com">
       <label for="password">Senha</label>
-      <input type="password" name="password" id="password" value="123abc">
+      <input type="password" name="password" id="password" value="321abc">
       <button type="submit">Entrar</button>
    </form>
+   <form id="update-password">
+      <h2>Alterar Senha</h2>
+      <label for="oldPassword">Senha Atual</label>
+      <input type="password" name="oldPassword" id="oldPassword">
+      <label for="newPassword">Nova Senha</label>
+      <input type="password" name="newPassword" id="newPassword">
+      <button type="submit">Alterar Senha</button>
+   </form>
+   <form id="forgot-password">
+      <h2>Esqueci a Senha</h2>
+      <label for="forgot_email">Email</label>
+      <input type="email" name="email" id="forgot_email" value="maria@email.com">
+      <button type="submit">Enviar email</button>
+   </form>
+
+   <form id="reset-password">
+      <h2>Resetar a senha</h2>
+      <label for="reset_email">Nova Senha</label>
+      <input type="password" name="new_password" id="reset_email">
+      <label for="token">token</label>
+      <input type="text" name="token" id="token">
+      <button type="submit">Resetar Senha</button>
+   </form>
+
+   <button id="logout">Sair</button>
    <pre id="result"></pre>
 </body>
 <script>
-   const form = document.getElementById("login");
+   const login = document.getElementById("login");
+   const updatePass = document.getElementById("update-password");
+   const forgotPass = document.getElementById("forgot-password");
+   const resetPass = document.getElementById("reset-password");
    const result = document.getElementById("result");
+   const logout = document.getElementById("logout");
 
-   form.addEventListener('submit', async (event) => {
+   login.addEventListener('submit', async (event) => {
       event.preventDefault();
       const base = 'http://localhost:3000';
-      const data = new FormData(form);
+      const data = new FormData(login);
       const response = await fetch(base + '/auth/login', {
          method: 'POST',
          headers: {
@@ -82,15 +117,99 @@
          },
          body: JSON.stringify(Object.fromEntries(data))
       });
+      const body = await response.json();
+      result.innerText = JSON.stringify(body, null, 2);
+      if (response.ok) {
+         window.location.reload();
+      }
    });
 
+   updatePass.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const base = 'http://localhost:3000';
+      const data = new FormData(updatePass);
+      const response = await fetch(base + '/auth/password/update', {
+         method: 'PUT',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+         body: JSON.stringify(Object.fromEntries(data))
+      });
+      const body = await response.json();
+      result.innerText = JSON.stringify(body, null, 2);
+      if (response.ok) {
+         window.location.reload();
+      }
+   });
+
+   forgotPass.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const base = 'http://localhost:3000';
+      const data = new FormData(forgotPass);
+      const response = await fetch(base + '/auth/password/forgot', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+         body: JSON.stringify(Object.fromEntries(data))
+      });
+      const body = await response.json();
+      result.innerText = JSON.stringify(body, null, 2);
+      if (response.ok) {
+         window.location.reload();
+      }
+   });
+
+   resetPass.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const base = 'http://localhost:3000';
+      const data = new FormData(resetPass);
+      const response = await fetch(base + '/auth/password/reset', {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json'
+         },
+         body: JSON.stringify(Object.fromEntries(data))
+      });
+      const body = await response.json();
+      result.innerText = JSON.stringify(body, null, 2);
+      if (response.ok) {
+         window.location.reload();
+      }
+   });
+
+   logout.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const response = await fetch('/auth/logout', {
+         method: 'DELETE',
+      });
+
+      if (response.ok) {
+         window.location.reload();
+      }
+   });
+
+   async function mudarSenha() {
+      const response = await fetch('/auth/update/password', {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+            oldPassword: '123abc',
+            newPassword: '12345678'
+         })
+      });
+      const body = await response.json();
+      console.log(JSON.stringify(body));
+   }
+
    async function autenticado() {
-      const respose = await fetch('/segura');
-      const body = await respose.json();
+      const response = await fetch('/auth/session');
+      const body = await response.json();
       result.innerText = JSON.stringify(body, null, 2);
    }
 
    autenticado();
+   //mudarSenha();
 </script>
 
 </html>
