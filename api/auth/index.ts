@@ -6,6 +6,8 @@ import { authTables } from "./tables.ts";
 import { AuthMiddleware } from "./middleware/auth.ts";
 import { Password } from "./utils/password.ts";
 import { v } from "../../core/utils/validate.ts";
+import { rateLimit } from "../../core/middleware/rate-limit.ts";
+
 export class AuthApi extends Api {
   query = new AuthQuery(this.db);
   session = new SessionService(this.core);
@@ -185,11 +187,19 @@ export class AuthApi extends Api {
     this.db.exec(authTables);
   }
   routes(): void {
-    this.router.post("/auth/user", this.handlers.postUser);
-    this.router.post("/auth/login", this.handlers.postLogin);
+    this.router.post("/auth/user", this.handlers.postUser, [
+      rateLimit(30_000, 15),
+    ]);
+    this.router.post("/auth/login", this.handlers.postLogin, [
+      rateLimit(30_000, 5),
+    ]);
     this.router.delete("/auth/logout", this.handlers.deleteSession);
-    this.router.post("/auth/password/forgot", this.handlers.passwordForgot);
-    this.router.post("/auth/password/reset", this.handlers.passwordReset);
+    this.router.post("/auth/password/forgot", this.handlers.passwordForgot, [
+      rateLimit(30_000, 5),
+    ]);
+    this.router.post("/auth/password/reset", this.handlers.passwordReset, [
+      rateLimit(30_000, 5),
+    ]);
     this.router.put("/auth/password/update", this.handlers.passwordUpdate, [
       this.auth.guard("user"),
     ]);
